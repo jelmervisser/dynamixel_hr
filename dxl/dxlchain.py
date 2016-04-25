@@ -54,14 +54,14 @@ class DxlChain:
         self.configuration=None
         self.motors={}
         self.post=Post(self)
-        if(Ax12.port == None):
-            Ax12.port = Serial("/dev/ttyAMA0", baudrate=1000000, timeout=0.001)
-        if(not Ax12.gpioSet):
+        if(DxlChain.port == None):
+            DxlChain.port = Serial("/dev/ttyAMA0", baudrate=1000000, timeout=0.001)
+        if(not DxlChain.gpioSet):
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
-            GPIO.setup(Ax12.RPI_DIRECTION_PIN, GPIO.OUT)
-            Ax12.gpioSet = True
-        self.direction(Ax12.RPI_DIRECTION_RX)
+            GPIO.setup(DxlChain.RPI_DIRECTION_PIN, GPIO.OUT)
+            DxlChain.gpioSet = True
+        self.direction(DxlChain.RPI_DIRECTION_RX)
 
     # Low-level communication (Thread unsafe functions with _)
 
@@ -104,7 +104,7 @@ class DxlChain:
             self._send(id,packet)
 
     def _send(self, id, packet):
-        self.direction(Ax12.RPI_DIRECTION_RX)
+        self.direction(DxlChain.RPI_DIRECTION_RX)
         """ Takes a payload, packages it as [header,id,length,payload,checksum], sends it on serial and flush"""
         checksumed_data = [id, len(packet)+1] + packet
 
@@ -120,7 +120,7 @@ class DxlChain:
     def _recv(self):
         """Wait for a response on the serial, validate it, raise errors if any, return id and data if any """
         # Read the first 4 bytes 0xFF,0xFF,id,length
-        self.direction(Ax12.RPI_DIRECTION_TX)
+        self.direction(DxlChain.RPI_DIRECTION_TX)
         header = array.array('B',self.port.read(4))
         if(len(header)!=4):
             raise DxlCommunicationException('Could not read first 4 bytes of expected response, got %d bytes'%len(header))
