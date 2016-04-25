@@ -141,8 +141,6 @@ class DxlChain:
         """Compute packet checksum."""
         return (~sum(values))&0xFF
 
-
-
     # Basic commands
 
     def ping(self,id):
@@ -200,7 +198,6 @@ class DxlChain:
         data=self._read(id,0,2)
         return (data[1]<<8)+data[0]
 
-
     # Register Access
 
     def get_reg(self,id,name):
@@ -255,7 +252,6 @@ class DxlChain:
         if len(data)!=esize:
             raise DxlCommunicationException,'Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data))
 
-
     def sync_write_pos_speed(self,ids,positions,speeds):
         """Performs a synchronized write of 'goal_pos' and 'moving_speed' registers for a set of motors (if possible)"""
         regpos=None
@@ -303,10 +299,6 @@ class DxlChain:
             payload.extend(regspeed.todxl(speed))
 
         self.send(Dxl.BROADCAST,payload)
-
-
-
-
 
     def sync_write_pos(self,ids,positions):
         """Performs a synchronized write of 'goal_pos' register for a set of motors (if possible)"""
