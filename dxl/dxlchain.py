@@ -65,6 +65,10 @@ class DxlChain:
 
     # Low-level communication (Thread unsafe functions with _)
 
+    def direction(self,d):
+        GPIO.output(DxlChain.RPI_DIRECTION_PIN, d)
+        sleep(DxlChain.RPI_DIRECTION_SWITCH_DELAY)
+
     def open(self):
         """Opens the serial port"""
         with self.lock:
