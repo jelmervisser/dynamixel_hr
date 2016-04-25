@@ -55,7 +55,7 @@ class DxlChain:
         self.motors={}
         self.post=Post(self)
         if(DxlChain.port == None):
-            DxlChain.port = Serial("/dev/ttyAMA0", baudrate=1000000, timeout=0.001)
+            DxlChain.port = serial.Serial("/dev/ttyAMA0", baudrate=1000000, timeout=0.001)
         if(not DxlChain.gpioSet):
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
