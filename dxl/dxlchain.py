@@ -13,15 +13,13 @@ import sys
 import serial
 import time
 import logging
+logging.basicConfig(level=logging.DEBUG)
 from threading import Lock
 import json
 import array
 from collections import OrderedDict
 from post_threading import Post
 import RPi.GPIO as GPIO
-from time import sleep
-
-
 
 class DxlChain:
     """
@@ -31,16 +29,6 @@ class DxlChain:
     Instantiate by passing the serial device (COMXX or /dev/ttyUSBX) and the baudrate to use.
     If the chain is unknown you can directly call get_motor_list to obtain the list of available motors.
     """
-
-    # RPi constants
-    RPI_DIRECTION_PIN = 18
-    RPI_DIRECTION_TX = GPIO.HIGH
-    RPI_DIRECTION_RX = GPIO.LOW
-    RPI_DIRECTION_SWITCH_DELAY = 0.0001
-
-    # static variables
-    port = None
-    gpioSet = False
 
     def __init__(self, portname,rate=57142,timeout=0.04):
         """
@@ -54,20 +42,8 @@ class DxlChain:
         self.configuration=None
         self.motors={}
         self.post=Post(self)
-        if(DxlChain.port == None):
-            DxlChain.port = serial.Serial("/dev/ttyAMA0", baudrate=1000000, timeout=0.001)
-        if(not DxlChain.gpioSet):
-            GPIO.setwarnings(False)
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(DxlChain.RPI_DIRECTION_PIN, GPIO.OUT)
-            DxlChain.gpioSet = True
-        self.direction(DxlChain.RPI_DIRECTION_RX)
 
     # Low-level communication (Thread unsafe functions with _)
-
-    def direction(self,d):
-        GPIO.output(DxlChain.RPI_DIRECTION_PIN, d)
-        sleep(DxlChain.RPI_DIRECTION_SWITCH_DELAY)
 
     def open(self):
         """Opens the serial port"""
@@ -77,6 +53,9 @@ class DxlChain:
     def _open(self):
         logging.info("Opening serial port %s at rate %d bps, timeout %f s"%(self.portname,self.rate,self.timeout))
         self.port=serial.Serial(self.portname,self.rate,timeout=self.timeout)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(18, GPIO.OUT)
+        GPIO.output(18, GPIO.LOW)
 
     def close(self):
         """Closes the serial port"""
@@ -108,12 +87,13 @@ class DxlChain:
             self._send(id,packet)
 
     def _send(self, id, packet):
-        self.direction(DxlChain.RPI_DIRECTION_RX)
         """ Takes a payload, packages it as [header,id,length,payload,checksum], sends it on serial and flush"""
         checksumed_data = [id, len(packet)+1] + packet
 
         data="".join(map(chr, [0xFF, 0xFF] + checksumed_data + [self.checksum(checksumed_data)]))
+        GPIO.output(18, GPIO.HIGH)
         self.port.write(data)
+        GPIO.output(18, GPIO.LOW)
         self.port.flushOutput()
 
     def recv(self):
@@ -124,7 +104,6 @@ class DxlChain:
     def _recv(self):
         """Wait for a response on the serial, validate it, raise errors if any, return id and data if any """
         # Read the first 4 bytes 0xFF,0xFF,id,length
-        self.direction(DxlChain.RPI_DIRECTION_TX)
         header = array.array('B',self.port.read(4))
         if(len(header)!=4):
             raise DxlCommunicationException('Could not read first 4 bytes of expected response, got %d bytes'%len(header))

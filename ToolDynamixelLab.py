@@ -31,8 +31,8 @@ def frate(data):
         return 1000000
     else:
         return 2000000/(data+1)
-    
-        
+
+
 searchAllRates=[ frate(data) for data in range(0,253)]
 
 
@@ -43,33 +43,33 @@ searchAllRates=[ frate(data) for data in range(0,253)]
 class Evaluator:
     def __init__(self):
         self.symbols={}
-        
+
     def bindSymbol(self,name,var):
         self.symbols[name]=var
-        
+
     def perform(self,toeval):
         if toeval.strip()=="": return None
-        
+
         # Wrap in function with return value
         self.cmd="def _localfunction():\n"
         for l in toeval.split("\n"):
             self.cmd+="  "+l+"\n"
         self.cmd+="_return=_localfunction()"
-        
-        # Build context        
+
+        # Build context
         context=self.buildContext()
         #~ for k,v in context.items():
             #~ print k+" "+str(v)
-        
+
         # Execute and retrieve return value
         exec self.cmd in context
         return context["_return"]
-    
+
     def buildContext(self):
-        # Build context        
+        # Build context
         context=dict(self.symbols)
         return context
-        
+
 
 class PythonWindow:
 
@@ -77,7 +77,7 @@ class PythonWindow:
         self.master=master
         self.parent=parent
         self.chain=parent.chain
-        
+
         self.defaultCode="""
 # Use the 'chain' object to access motors
 # Here is an example that assumes a motor on ID 1
@@ -89,15 +89,15 @@ chain.goto(id,1000,speed=100) # Low speed to pos 1000
 chain.goto(id,500,blocking=False) # Current speed to pos 500
 while chain.is_moving():
 	print chain.get_reg_si(id,"present_position")
-chain.goto(id,100,speed=0) # Full speed back to pos 100   
+chain.goto(id,100,speed=0) # Full speed back to pos 100
         """
-        
+
         self.window=Toplevel(self.master)
-        self.window.title("Python sandbox") 
+        self.window.title("Python sandbox")
 
         self.window.protocol("WM_DELETE_WINDOW", self.destroy)
         self.window.bind('<Key-Escape>', self.destroy )
-        
+
         self.frame=Frame(self.window, width= 300, height= 200)
         self.buildMenu(self.window)
 
@@ -106,15 +106,15 @@ chain.goto(id,100,speed=0) # Full speed back to pos 100
         self.textTask.pack()
         self.pythonFrame.grid(row=0,column=0)
         self.textTask.insert(END,self.defaultCode)
-        
+
         self.evaluator=Evaluator()
         self.evaluator.bindSymbol("chain",self.chain)
         self.textTask.colorize()
-        
+
         scrly = Scrollbar(self.frame, command=self.textTask.yview)
         self.textTask.config(yscrollcommand=scrly.set)
         scrly.grid(column=1,row=0,sticky="ns")
-        
+
         #~ scrlx = Scrollbar(self.frame, command=self.textTask.xview,orient=HORIZONTAL)
         #~ self.textTask.config(xscrollcommand=scrlx.set)
         #~ scrlx.grid(column=0,row=1,sticky="ew")
@@ -124,7 +124,7 @@ chain.goto(id,100,speed=0) # Full speed back to pos 100
 
 
         self.frame.pack()
-        
+
 
     def buildMenu(self, root):
         menubar = Menu(root)
@@ -140,17 +140,17 @@ chain.goto(id,100,speed=0) # Full speed back to pos 100
     def destroy(self,event=None):
         self.parent.pythonWindow=None
         self.window.destroy()
-        
-    
+
+
     def execute(self,event=None):
         try:
             toeval=self.textTask.get(1.0,END)
             self.evaluator.perform(toeval)
         except Exception,e:
             tkMessageBox.showerror("Python Error",str(e))
-            
-        
-        
+
+
+
     def save(self):
         options={}
         options['defaultextension'] = '.py'
@@ -161,7 +161,7 @@ chain.goto(id,100,speed=0) # Full speed back to pos 100
             f=open(file,"w")
             f.write(txt)
             f.close()
-    
+
     def load(self):
         options={}
         options['defaultextension'] = '.py'
@@ -174,7 +174,7 @@ chain.goto(id,100,speed=0) # Full speed back to pos 100
             f.close()
             self.textTask.insert(END,txt)
             self.textTask.colorize()
-    
+
 
 
 
@@ -184,29 +184,29 @@ class MotorsWindow:
         self.master=master
         self.parent=parent
         self.chain=parent.chain
-        
+
         self.window=Toplevel(self.master)
-        self.window.title("Motors")        
+        self.window.title("Motors")
 
         self.window.protocol("WM_DELETE_WINDOW", self.destroy)
         self.window.bind('<Key-Escape>', lambda event: self.destroy() )
-        
+
         self.frame=Frame(self.window, width= 300, height= 200)
-        
+
         self.row=0
         self.column=0
         self.update=False
         self.localFrame=[]
         for id in self.chain.motors.keys():
-            self.generate(id)            
-        
+            self.generate(id)
+
         self.frame.pack()
         self.master.after(1000,self.startUpdating) # To avoid spurious set coming from sliders
 
     def startUpdating(self):
         self.update=True
-        
-    def generate(self,id): 
+
+    def generate(self,id):
         model_name=self.chain.motors[id].model_name
         motor=self.chain.motors[id]
         if motor.is_motor():
@@ -220,7 +220,7 @@ class MotorsWindow:
             #~ for rname,reg in motor.registers.items():
                 #~ if 'w' in reg.mode and not reg.eeprom:
                     #~ self.addRegister(id,rname)
-            
+
             row=0
             row=self.addRegister(id,localFrame,"goal_pos",row)
             row=self.addRegister(id,localFrame,"moving_speed",row)
@@ -234,29 +234,29 @@ class MotorsWindow:
         Label(localFrame,text=register).grid(column=0,row=row)
         val=self.chain.get_reg(id,register)
         reg=self.chain.motors[id].registers[register]
-        
+
         if reg.range:
             range=reg.range
         elif reg.size==1:
             range=[0,255]
         else:
             range=[0,65535]
-        
-        scale=Scale(localFrame, from_=range[0], to=range[1], length=250,orient=HORIZONTAL)        
+
+        scale=Scale(localFrame, from_=range[0], to=range[1], length=250,orient=HORIZONTAL)
         scale.set(val)
         scale.configure( command=lambda val,id=id,register=register: self.set(id,register,val) )
         scale.grid(column=1,row=row)
         return row+1
-        
+
     def destroy(self):
         self.parent.motorsWindow=None
         self.window.destroy()
-    
+
     def set(self,id,register,value):
         if self.update:
             self.parent.chain.set_reg(id,register,int(value))
-        
-        
+
+
 class MainWindow:
 
     def __init__(self, master):
@@ -264,14 +264,14 @@ class MainWindow:
 
         self.motorsWindow=None
         self.pythonWindow=None
-        
+
         self.chain=None
 
         self.width=800
         self.height=600
         self.frame = Frame(master, width= self.width, height= self.height)
         self.buildMenu(master)
-        
+
         self.master.bind('<Key-Escape>', self.exit )
 
         #~ Label(self.frame, text="WARNING: use with 1 servo connected at a time !!").pack()
@@ -295,30 +295,30 @@ class MainWindow:
     def buildSerialPortFrame(self):
         frame=LabelFrame(self.frame,text="Serial Port")
         Label(frame,text="Port:").grid(column=0,row=0)
-        
+
         self.comPort= StringVar()
         if os.name=="nt":
             port="COM21"
         else:
-            port="/dev/ttyUSB0"
+            port="/dev/ttyAMA0"
         self.comPort.set(port)
         entryComPort = Entry(frame, textvariable=self.comPort)
 
-        entryComPort.grid(column=1,row=0)        
+        entryComPort.grid(column=1,row=0)
         Button(frame,text="Scan",command=self.scan).grid(column=2,row=0)
 
         Label(frame,text="Baudrate:").grid(column=0,row=1)
         self.baudRate= IntVar()
         self.baudRate.set("1000000")
         entryBaudRate= Entry(frame, textvariable=self.baudRate)
-        entryBaudRate.grid(column=1,row=1)        
+        entryBaudRate.grid(column=1,row=1)
         Button(frame,text="Connect",command=self.connect).grid(column=2,row=1)
 
         Label(frame,text="Timeout:").grid(column=0,row=2)
         self.timeout= DoubleVar()
         self.timeout.set("0.1")
         entryTimeout= Entry(frame, textvariable=self.timeout)
-        entryTimeout.grid(column=1,row=2)        
+        entryTimeout.grid(column=1,row=2)
 
         return frame
 
@@ -333,7 +333,7 @@ class MainWindow:
         self.popup.add_command(label="Change baudrate",command=self.changeMotorBaudrate)
         self.popup.add_command(label="Factory reset",command=self.factoryReset)
         self.popup.add_command(label="Open documentation",command=self.openDocumentation)
-        self.listElements.bind("<Button-3>", self.do_popup)        
+        self.listElements.bind("<Button-3>", self.do_popup)
         return frame
 
     def buildChainFrame(self):
@@ -344,17 +344,17 @@ class MainWindow:
         self.textConfig=Text(configFrame,width=50,height=30)
         self.textConfig.grid(column=0,row=0)
         self.textConfig.insert(END,"{}")
-        
+
         scrly = Scrollbar(configFrame, command=self.textConfig.yview)
         self.textConfig.config(yscrollcommand=scrly.set)
         scrly.grid(column=1,row=0,sticky="ns")
-        
+
         scrlx = Scrollbar(configFrame, command=self.textConfig.xview,orient=HORIZONTAL)
         self.textConfig.config(xscrollcommand=scrlx.set)
         scrlx.grid(column=0,row=1,sticky="ew")
-        
+
         configFrame.grid(column=0,row=0,rowspan=10)
-        
+
 
 
         Button(frame,text="Read",command=self.refresh).grid(column=1,row=0)
@@ -367,13 +367,13 @@ class MainWindow:
 
         Button(frame,text="Save Pose",command=self.savePose).grid(column=1,row=6)
         Button(frame,text="Load Pose",command=self.loadPose).grid(column=1,row=7)
-        
+
 
         return frame
 
 
-        
-        
+
+
     def do_popup(self,event):
         oldid=self.getSelectedMotor()
         if oldid<0:
@@ -403,28 +403,28 @@ class MainWindow:
 
         self.doBroadcast=BooleanVar()
         settingsmenu.add_checkbutton(label="Use Ping Broadcast", onvalue=True, offvalue=False, variable=self.doBroadcast)
-        self.doBroadcast.set(True)        
+        self.doBroadcast.set(True)
 
 
         self.doScanAll=BooleanVar()
         settingsmenu.add_checkbutton(label="Scan All Rates", onvalue=True, offvalue=False, variable=self.doScanAll)
-        self.doScanAll.set(False)        
+        self.doScanAll.set(False)
 
-        #~ self.doHideInternalStates= BooleanVar()    
+        #~ self.doHideInternalStates= BooleanVar()
         #~ viewmenu.add_checkbutton(label="Hide Internal States", onvalue=True, offvalue=False, variable=self.doHideInternalStates)
         #~ self.doHideInternalStates.set(True)
 
 
 
     def getSelectedMotor(self):
-        items = map(int, self.listElements.curselection())    
+        items = map(int, self.listElements.curselection())
         if len(items)==0:
             return -1
         else:
             id=self.chain.motors.keys()[items[0]]
             return id
-            
-        
+
+
     def changeMotorID(self):
         oldid=self.getSelectedMotor()
         if oldid<0:
@@ -476,7 +476,7 @@ class MainWindow:
             if do:
                 self.chain.factory_reset(id)
                 self.connect()
-                
+
     def changeMotorBaudrate(self):
         id=self.getSelectedMotor()
         if id<0:
@@ -488,10 +488,10 @@ class MainWindow:
             reg=self.chain.motors[id].registers["baud_rate"]
             dxlrate=reg.fromsi(rate)
             realrate=reg.tosi(dxlrate)
-            
+
             answer=tkMessageBox.askyesno("Change Baudrate","Warning: motor ID %d will be set to baudrate %d, are you sure you want to proceed?"%(id,realrate))
             if answer:
-                self.chain.set_reg(id,"baud_rate",dxlrate)                
+                self.chain.set_reg(id,"baud_rate",dxlrate)
                 self.connect()
 
     def openDocumentation(self):
@@ -503,7 +503,7 @@ class MainWindow:
             url=self.chain.motors[id].documentation_url
             webbrowser.open(url)
 
-        
+
     def createMotorsWindow(self):
         if not self.chain:
             tkMessageBox.showerror("Chain Error","Please connect to a valid chain first")
@@ -519,9 +519,9 @@ class MainWindow:
             self.pythonWindow=PythonWindow(self.master,self)
         #~ from idlelib.PyShell import EditorWindow
         #~ self.pythonWindow=EditorWindow(root=self.master)
-        
-                
-                
+
+
+
     def exit(self,event=None):
         self.close()
         self.master.destroy()
@@ -533,19 +533,19 @@ class MainWindow:
             self.chain=dxlchain.DxlChain(comPort,rate=rate,timeout=self.timeout.get())
         else:
             self.chain.reopen(portname=comPort,rate=rate,timeout=self.timeout.get())
-        
+
 
     def test(self):
         ids=[10,11]
         positions=[200,800]
         self.chain.sync_write_pos(ids,positions)
-        
+
     def test2(self):
         ids=[10,11]
         positions=[200,800]
         speeds=[30,100]
         self.chain.sync_write_pos_speed(ids,positions,speeds)
-        
+
     def close(self):
         if self.motorsWindow:
             self.motorsWindow.destroy()
@@ -559,22 +559,22 @@ class MainWindow:
                 #~ self.chain=None
             except:
                 loggin.warning("WARNING: could not close chain")
-        
+
     def scan(self):
         selected_rate=None
         self.listElements.delete(0,END)
         rates=searchRates
         if self.doScanAll.get():
             rates=searchAllRates
-        for rate in rates:            
+        for rate in rates:
             try:
                 self.open(rate)
             except SerialException,e:
                 tkMessageBox.showerror("Serial Error","Could not open serial port: \n"+str(e))
                 return
-                
+
             try:
-                motors=self.chain.get_motor_list(instantiate=False,broadcast=self.doBroadcast.get())                
+                motors=self.chain.get_motor_list(instantiate=False,broadcast=self.doBroadcast.get())
                 for id in motors:
                     model_number=self.chain.get_model_number(id)
                     model_name=get_model_name(model_number)
@@ -592,7 +592,7 @@ class MainWindow:
                 return
             finally:
                 self.close()
-        
+
         if selected_rate:
             self.selectRate(selected_rate,populateList=False)
 
@@ -608,7 +608,7 @@ class MainWindow:
             except Exception,e:
                 tkMessageBox.showerror("JSON Error","Could not parse JSON formatted configuration: \n"+str(e))
                 return
-                
+
             try:
                 self.chain.set_configuration(self.conf)
             except Exception,e:
@@ -627,7 +627,7 @@ class MainWindow:
 
     def selectRate(self,rate,populateList=False):
         if populateList:
-            self.listElements.delete(0,END)        
+            self.listElements.delete(0,END)
         logging.info("Selected rate %d"%rate)
         self.baudRate.set(rate)
         try:
@@ -635,14 +635,14 @@ class MainWindow:
         except SerialException,e:
             tkMessageBox.showerror("Serial Error","Could not open serial port: \n"+str(e))
             return
-        try:            
-            self.conf=self.chain.get_configuration(broadcast=self.doBroadcast.get())            
-        except dxlcore.DxlConfigurationException,e:            
+        try:
+            self.conf=self.chain.get_configuration(broadcast=self.doBroadcast.get())
+        except dxlcore.DxlConfigurationException,e:
             tkMessageBox.showerror("Configuration Error","Could not instantiate motor: \n"+str(e))
         except dxlcore.DxlCommunicationException,e:
             tkMessageBox.showerror("Communication Error","Could not communicate with motor (could be due to overlapping IDs, try on single motors): \n"+str(e))
             return
-        
+
         if populateList:
             for id in self.chain.motors.keys():
                 model_name=self.chain.motors[id].model_name
@@ -652,24 +652,24 @@ class MainWindow:
 
     def showConfig(self,config):
         txt=json.dumps(config,indent=4,sort_keys=False)
-        self.textConfig.delete(1.0,END)            
+        self.textConfig.delete(1.0,END)
         self.textConfig.insert(END,txt)
-        
- 
-    
+
+
+
     def set_chain_reg(self,reg,value):
         if not self.chain:
             tkMessageBox.showerror("Chain Error","Please connect to a valid chain first")
             return
         for id in self.chain.motors.keys():
             self.chain.set_reg(id,reg,value)
-        
+
     def activate(self):
         self.set_chain_reg("torque_enable",1)
 
     def deactivate(self):
         self.set_chain_reg("torque_enable",0)
-    
+
     def savePose(self):
         if not self.chain:
             tkMessageBox.showerror("Chain Error","Please connect to a valid chain first")
@@ -678,7 +678,7 @@ class MainWindow:
         options['defaultextension'] = '.position'
         options['filetypes'] = [('pose files', '.position'),('all files', '.*')]
         file=tkFileDialog.asksaveasfilename(**options)
-        if file:                        
+        if file:
             self.chain.save_position(file)
 
     def loadPose(self):
@@ -692,7 +692,7 @@ class MainWindow:
         if file:
             self.chain.load_position(file)
 
-        
+
 
 
 
@@ -703,9 +703,8 @@ try:
     root.iconbitmap(default="humarobotics.ico")
 except:
     logging.warning("Could not load icon")
-    
+
 
 mainwindow = MainWindow(root)
 root.protocol("WM_DELETE_WINDOW", mainwindow.exit)
 root.mainloop()
-
